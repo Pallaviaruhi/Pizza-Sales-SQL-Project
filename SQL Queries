@@ -1,0 +1,218 @@
+-- Drop the database (if exists)
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'PizzaSalesDB')
+BEGIN
+    DROP DATABASE PizzaSalesDB;
+END
+GO
+
+
+-- 1. Create Database (if not exists)
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'PizzaSalesDB')
+BEGIN
+    CREATE DATABASE PizzaSalesDB;
+END
+GO
+
+USE PizzaSalesDB;
+GO
+
+-- Table: pizza_types
+CREATE TABLE pizza_types (
+    pizza_type_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) not null,
+    category VARCHAR(50) not null,
+    ingredients TEXT not null
+);
+
+-- Table: pizzas
+CREATE TABLE pizzas (
+    pizza_id VARCHAR(50) PRIMARY KEY,
+    pizza_type_id VARCHAR(50) not null,
+    size CHAR(1) not null,
+    price DECIMAL(5,2) not null,
+    FOREIGN KEY (pizza_type_id) REFERENCES pizza_types(pizza_type_id)
+);
+
+-- Table: orders
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    order_date DATE not null,
+    order_time TIME not null
+);
+
+-- Table: order_details
+CREATE TABLE order_details (
+    order_details_id INT PRIMARY KEY,
+    order_id INT not null,
+    pizza_id VARCHAR(50) not null,
+    quantity INT not null,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (pizza_id) REFERENCES pizzas(pizza_id)
+);
+
+ALTER TABLE pizzas
+ALTER COLUMN size VARCHAR(5);
+
+
+
+-- Bulk insert pizza_types
+BULK INSERT pizza_types
+FROM 'C:\Users\palla\Downloads\pizza_Dataset\pizza_sales\pizza_types.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    TABLOCK
+);
+
+-- Bulk insert pizzas
+BULK INSERT pizzas
+FROM 'C:\Users\palla\Downloads\pizza_Dataset\pizza_sales\pizzas.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    TABLOCK
+);
+
+BULK INSERT pizzas
+FROM 'C:\Users\palla\Downloads\pizza_Dataset\pizza_sales\pizzas_fixed.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    TABLOCK
+);
+
+-- Bulk insert orders
+BULK INSERT orders
+FROM 'C:\Users\palla\Downloads\pizza_Dataset\pizza_sales\orders.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    TABLOCK
+);
+
+-- Bulk insert order_details
+BULK INSERT order_details
+FROM 'C:\Users\palla\Downloads\pizza_Dataset\pizza_sales\order_details.csv'
+WITH (
+    FIRSTROW = 2,
+    FIELDTERMINATOR = ',',
+    ROWTERMINATOR = '\n',
+    TABLOCK
+);
+
+
+--Basic Queries
+--1. Total number of orders placed
+SELECT COUNT(DISTINCT order_id) AS total_orders
+FROM orders;
+
+--2. Total revenue generated from pizza sales
+SELECT SUM(od.quantity * p.price) AS total_revenue
+FROM order_details od
+JOIN pizzas p ON od.pizza_id = p.pizza_id;
+
+--3. Highest-priced pizza
+SELECT TOP 1 pizza_id, price
+FROM pizzas
+ORDER BY price DESC;
+
+--4. Most common pizza size ordered
+SELECT TOP 1 p.size, COUNT(*) AS count
+FROM order_details od
+JOIN pizzas p ON od.pizza_id = p.pizza_id
+GROUP BY p.size
+ORDER BY count DESC;
+
+--5. Top 5 most ordered pizza types (by quantity)
+SELECT TOP 5 pt.name, SUM(od.quantity) AS total_quantity
+FROM order_details od
+JOIN pizzas p ON od.pizza_id = p.pizza_id
+JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+GROUP BY pt.name
+ORDER BY total_quantity DESC;
+
+--Intermediate Queries
+--6. Total quantity of each pizza category ordered
+SELECT pt.category, SUM(od.quantity) AS total_quantity
+FROM order_details od
+JOIN pizzas p ON od.pizza_id = p.pizza_id
+JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+GROUP BY pt.category;
+
+--7. Distribution of orders by hour
+SELECT DATEPART(HOUR, CAST(order_time AS TIME)) AS order_hour, COUNT(*) AS total_orders
+FROM orders
+GROUP BY DATEPART(HOUR, CAST(order_time AS TIME))
+ORDER BY order_hour;
+
+--8. Category-wise distribution of pizzas
+SELECT pt.category, COUNT(DISTINCT p.pizza_id) AS pizza_count
+FROM pizzas p
+JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+GROUP BY pt.category;
+
+--9. Average number of pizzas ordered per day
+SELECT AVG(pizzas_per_day) AS avg_pizzas_ordered
+FROM (
+    SELECT o.order_date, SUM(od.quantity) AS pizzas_per_day
+    FROM orders o
+    JOIN order_details od ON o.order_id = od.order_id
+    GROUP BY o.order_date
+) AS daily_totals;
+
+--10. Top 3 most ordered pizza types by revenue
+SELECT TOP 3 pt.name, SUM(od.quantity * p.price) AS revenue
+FROM order_details od
+JOIN pizzas p ON od.pizza_id = p.pizza_id
+JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+GROUP BY pt.name
+ORDER BY revenue DESC;
+
+--Advanced Queries
+--11. Percentage contribution of each pizza type to total revenue
+WITH revenue_by_type AS (
+    SELECT pt.name, SUM(od.quantity * p.price) AS revenue
+    FROM order_details od
+    JOIN pizzas p ON od.pizza_id = p.pizza_id
+    JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+    GROUP BY pt.name
+),
+total AS (
+    SELECT SUM(revenue) AS total_revenue FROM revenue_by_type
+)
+SELECT rbt.name, 
+       rbt.revenue,
+       ROUND((rbt.revenue / t.total_revenue) * 100, 2) AS percentage
+FROM revenue_by_type rbt, total t
+ORDER BY percentage DESC;
+
+--12. Cumulative revenue over time
+SELECT o.order_date,
+       SUM(od.quantity * p.price) AS daily_revenue,
+       SUM(SUM(od.quantity * p.price)) OVER (ORDER BY o.order_date) AS cumulative_revenue
+FROM orders o
+JOIN order_details od ON o.order_id = od.order_id
+JOIN pizzas p ON od.pizza_id = p.pizza_id
+GROUP BY o.order_date
+ORDER BY o.order_date;
+
+--13. Top 3 most ordered pizza types by revenue per category
+WITH category_revenue AS (
+    SELECT pt.category, pt.name AS pizza_name, SUM(od.quantity * p.price) AS revenue
+    FROM order_details od
+    JOIN pizzas p ON od.pizza_id = p.pizza_id
+    JOIN pizza_types pt ON p.pizza_type_id = pt.pizza_type_id
+    GROUP BY pt.category, pt.name
+),
+ranked AS (
+    SELECT *, 
+           RANK() OVER (PARTITION BY category ORDER BY revenue DESC) AS rnk
+    FROM category_revenue
+)
+SELECT category, pizza_name, revenue
+FROM ranked
+WHERE rnk <= 3;
