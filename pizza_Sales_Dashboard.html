@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Sales Analysis Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --tomato: #E74C3C;
+            --cheese: #F39C12;
+            --basil: #27AE60;
+            --dough: #F9EBC3;
+            --charcoal: #2C3E50;
+            --olive: #34495E;
+            --white: #FFFFFF;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            color: var(--charcoal);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .pizza-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.03;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 5 L75 30 L70 75 L30 75 L25 30 Z" fill="%23E74C3C"/></svg>');
+            background-size: 200px;
+        }
+        
+        .presentation-header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            position: relative;
+            background: linear-gradient(135deg, var(--tomato) 0%, var(--cheese) 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            color: white;
+        }
+        
+        .presentation-header h1 {
+            font-size: 3.2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .presentation-header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .pizza-icon {
+            font-size: 4rem;
+            margin: 20px 0;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .slides-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            gap: 25px;
+            padding: 20px 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--tomato) transparent;
+        }
+        
+        .slide {
+            scroll-snap-align: start;
+            min-width: 90%;
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.98);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .slide.active {
+            transform: scale(1);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        
+        .slide-header {
+            background: linear-gradient(to right, var(--olive), var(--charcoal));
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slide-number {
+            background: var(--tomato);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .slide-content {
+            padding: 30px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 10px 0;
+        }
+        
+        .metric-card {
+            background: var(--dough);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--tomato);
+        }
+        
+        .metric-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 10px 0;
+            color: var(--tomato);
+        }
+        
+        .metric-title {
+            font-size: 1rem;
+            color: var(--olive);
+            font-weight: 600;
+        }
+        
+        .insight-card {
+            background: #f8f9fa;
+            border-left: 4px solid var(--basil);
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .insight-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--basil);
+            margin-bottom: 10px;
+        }
+        
+        .visual-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .visual-box {
+            flex: 1;
+            min-width: 300px;
+            background: var(--dough);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .visual-title {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--olive);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        
+        th {
+            background: var(--olive);
+            color: white;
+            text-align: left;
+            padding: 12px 15px;
+        }
+        
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .recommendations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .recommendation-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-top: 4px solid var(--tomato);
+            transition: transform 0.3s ease;
+        }
+        
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .rec-number {
+            background: var(--tomato);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .nav-btn {
+            background: var(--tomato);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .nav-btn:hover {
+            background: var(--cheese);
+            transform: scale(1.1);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--olive);
+            font-size: 0.9rem;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .pizza-slice {
+            display: inline-block;
+            margin: 0 5px;
+            animation: spin 8s linear infinite;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, rgba(243, 156, 18, 0.2), rgba(243, 156, 18, 0.2));
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .slide {
+                min-width: 85%;
+            }
+            
+            .presentation-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .metric-value {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pizza-bg"></div>
+    <div class="container">
+        <div class="presentation-header">
+            <div class="pizza-icon">🍕</div>
+            <h1>Pizza Sales Analysis Report</h1>
+            <p>Data-Driven Insights for Business Growth | Prepared by Aruhi Pallavi</p>
+        </div>
+        
+        <div class="slides-container" id="slidesContainer">
+            <!-- Slide 1: Key Metrics -->
+            <div class="slide active" id="slide1">
+                <div class="slide-header">
+                    <div class="slide-number">1</div>
+                    <h2>Key Performance Metrics</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Comprehensive overview of pizza sales performance based on analysis of 21,350 orders</p>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-title">Total Orders</div>
+                            <div class="metric-value">21,350</div>
+                            <div>All-time transactions</div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-title">Total Revenue</div>
+                            <div class="metric-value">$817,860</div>
+                            <div>Gross sales</div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-title">Avg. Daily Orders</div>
+                            <div class="metric-value">138</div>
+                            <div>Pizzas per day</div>
+                        </div>
+                        
+                        <div class="metric-card">
+                            <div class="metric-title">Popular Size</div>
+                            <div class="metric-value">L (87%)</div>
+                            <div>Large pizza preference</div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-lightbulb"></i> Primary Insight</h3>
+                        <p>The business shows strong sales volume with <span class="highlight">over 21,000 orders</span> generating <span class="highlight">$817K in revenue</span>. The consistent average of 138 pizzas daily provides a solid foundation for inventory planning and staffing.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 2: Peak Order Hours -->
+            <div class="slide" id="slide2">
+                <div class="slide-header">
+                    <div class="slide-number">2</div>
+                    <h2>Peak Order Hours Analysis</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Understanding customer ordering patterns to optimize operations and staffing</p>
+                    
+                    <div class="visual-row">
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-clock"></i> Orders by Hour</div>
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Hour</th>
+                                        <th>Orders</th>
+                                        <th>% of Total</th>
+                                    </tr>
+                                    <tr>
+                                        <td>12-1 PM</td>
+                                        <td>2,520</td>
+                                        <td>11.8%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>1-2 PM</td>
+                                        <td>2,455</td>
+                                        <td>11.5%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>6-7 PM</td>
+                                        <td>2,399</td>
+                                        <td>11.2%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>5-6 PM</td>
+                                        <td>2,336</td>
+                                        <td>10.9%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>7-8 PM</td>
+                                        <td>2,009</td>
+                                        <td>9.4%</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-chart-bar"></i> Daily Order Distribution</div>
+                            <div style="height: 20px; background: #e0e0e0; border-radius: 10px; margin: 30px 0; position: relative;">
+                                <div style="position: absolute; height: 100%; width: 24%; background: var(--tomato); border-radius: 10px 0 0 10px;"></div>
+                                <div style="position: absolute; height: 100%; width: 23%; left: 24%; background: var(--cheese);"></div>
+                                <div style="position: absolute; height: 100%; width: 22%; left: 47%; background: var(--basil);"></div>
+                                <div style="position: absolute; height: 100%; width: 21%; left: 69%; background: #3498db; border-radius: 0 10px 10px 0;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                <div>12-3 PM<br><strong>46.2%</strong></div>
+                                <div>3-6 PM<br><strong>28.3%</strong></div>
+                                <div>6-9 PM<br><strong>21.5%</strong></div>
+                                <div>Other<br><strong>4.0%</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-lightbulb"></i> Key Insight</h3>
+                        <p>Order volume shows clear peaks during <span class="highlight">lunch (12-2 PM)</span> and <span class="highlight">dinner (5-8 PM)</span> hours, with the single busiest hour being 12-1 PM (2,520 orders). Over 75% of orders occur between 11 AM and 8 PM.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 3: Top Performing Pizzas -->
+            <div class="slide" id="slide3">
+                <div class="slide-header">
+                    <div class="slide-number">3</div>
+                    <h2>Top Performing Pizzas</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Analysis of best-selling pizzas by quantity and revenue contribution</p>
+                    
+                    <div class="visual-row">
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-pizza-slice"></i> Top 5 by Quantity</div>
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Pizza</th>
+                                        <th>Quantity</th>
+                                        <th>Share</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Classic Deluxe</td>
+                                        <td>2,453</td>
+                                        <td>11.5%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Barbecue Chicken</td>
+                                        <td>2,432</td>
+                                        <td>11.4%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Hawaiian</td>
+                                        <td>2,422</td>
+                                        <td>11.3%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pepperoni</td>
+                                        <td>2,418</td>
+                                        <td>11.3%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Thai Chicken</td>
+                                        <td>2,371</td>
+                                        <td>11.1%</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-money-bill-wave"></i> Top 3 by Revenue</div>
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Pizza</th>
+                                        <th>Revenue</th>
+                                        <th>Avg. Price</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Thai Chicken</td>
+                                        <td>$43,434</td>
+                                        <td>$18.32</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Barbecue Chicken</td>
+                                        <td>$42,768</td>
+                                        <td>$17.59</td>
+                                    </tr>
+                                    <tr>
+                                        <td>California Chicken</td>
+                                        <td>$41,410</td>
+                                        <td>$17.48</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div style="margin-top: 20px; text-align: center;">
+                                <div style="display: inline-block; width: 12px; height: 12px; background: var(--tomato); border-radius: 50%;"></div>
+                                <span> Chicken pizzas dominate revenue</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-lightbulb"></i> Key Insight</h3>
+                        <p>While <span class="highlight">Classic Deluxe</span> leads in quantity sold, <span class="highlight">Thai Chicken Pizza</span> generates the highest revenue despite ranking #4 in units sold. Chicken-based pizzas occupy all top revenue positions.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 4: Category Performance -->
+            <div class="slide" id="slide4">
+                <div class="slide-header">
+                    <div class="slide-number">4</div>
+                    <h2>Category Performance</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Comparison of pizza categories by sales volume and variety</p>
+                    
+                    <div class="visual-row">
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-chart-pie"></i> Sales by Category</div>
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Quantity</th>
+                                        <th>% of Total</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Classic</td>
+                                        <td>13,529</td>
+                                        <td>28.1%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Chicken</td>
+                                        <td>11,050</td>
+                                        <td>23.0%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Supreme</td>
+                                        <td>11,987</td>
+                                        <td>24.9%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Veggie</td>
+                                        <td>11,649</td>
+                                        <td>24.2%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mushroom</td>
+                                        <td>1,359</td>
+                                        <td>2.8%</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="visual-box">
+                            <div class="visual-title"><i class="fas fa-list"></i> Menu Variety</div>
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Varieties</th>
+                                        <th>Sales/Variety</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Veggie</td>
+                                        <td>27</td>
+                                        <td>431</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Supreme</td>
+                                        <td>25</td>
+                                        <td>479</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Classic</td>
+                                        <td>23</td>
+                                        <td>588</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Chicken</td>
+                                        <td>18</td>
+                                        <td>614</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Mushroom</td>
+                                        <td>3</td>
+                                        <td>453</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-lightbulb"></i> Key Insight</h3>
+                        <p><span class="highlight">Chicken pizzas</span> have the highest sales per variety (614), outperforming categories with more options. <span class="highlight">Mushroom pizzas</span> show the weakest performance despite having the fewest varieties.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 5: Strategic Recommendations -->
+            <div class="slide" id="slide5">
+                <div class="slide-header">
+                    <div class="slide-number">5</div>
+                    <h2>Strategic Recommendations</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Actionable insights to drive growth and operational efficiency</p>
+                    
+                    <div class="recommendations">
+                        <div class="recommendation-card">
+                            <div class="rec-number">1</div>
+                            <h3>Peak Hour Optimization</h3>
+                            <p>Shift 70% of staff to 10AM-8PM shifts. Implement "Power Hour" lunch combos during 12-1PM featuring top pizzas.</p>
+                        </div>
+                        
+                        <div class="recommendation-card">
+                            <div class="rec-number">2</div>
+                            <h3>Menu Streamlining</h3>
+                            <p>Reduce underperforming veggie variants from 27 to 15. Phase out 2 mushroom pizzas and introduce 2 new chicken recipes.</p>
+                        </div>
+                        
+                        <div class="recommendation-card">
+                            <div class="rec-number">3</div>
+                            <h3>Upsell Strategy</h3>
+                            <p>Implement "XL Upgrade" campaign (+$4 for large). Create premium bundles featuring Thai Chicken Pizza.</p>
+                        </div>
+                        
+                        <div class="recommendation-card">
+                            <div class="rec-number">4</div>
+                            <h3>Inventory Management</h3>
+                            <p>Reduce mushroom ingredients by 40%. Use daily average (138 pizzas) to optimize procurement and reduce waste.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-bullseye"></i> Expected Outcomes</h3>
+                        <p>Implementing these strategies can potentially increase revenue by <span class="highlight">12-15%</span> and improve operational efficiency by <span class="highlight">20%</span> through better inventory management and staff allocation.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 6: Conclusion -->
+            <div class="slide" id="slide6">
+                <div class="slide-header">
+                    <div class="slide-number">6</div>
+                    <h2>Conclusion & Next Steps</h2>
+                </div>
+                <div class="slide-content">
+                    <p>Summary of findings and roadmap for future analysis</p>
+                    
+                    <div class="visual-box" style="background: linear-gradient(135deg, var(--dough) 0%, #f0e6cc 100%);">
+                        <h3 style="text-align: center; color: var(--olive); margin-bottom: 20px;">
+                            <i class="fas fa-chart-line"></i> Key Business Opportunities
+                        </h3>
+                        <ul style="list-style-type: none; padding: 0;">
+                            <li style="padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center;">
+                                <div style="background: var(--tomato); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">1</div>
+                                <div>Focus on chicken category as primary revenue driver</div>
+                            </li>
+                            <li style="padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center;">
+                                <div style="background: var(--cheese); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">2</div>
+                                <div>Capitalize on peak hours with targeted promotions</div>
+                            </li>
+                            <li style="padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center;">
+                                <div style="background: var(--basil); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">3</div>
+                                <div>Optimize menu based on sales per variety metrics</div>
+                            </li>
+                            <li style="padding: 12px; display: flex; align-items: center;">
+                                <div style="background: var(--olive); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px;">4</div>
+                                <div>Implement waste reduction program using daily averages</div>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <h3><i class="fas fa-road"></i> Next Steps</h3>
+                        <p>1. Implement A/B testing for new chicken recipes and combo offers<br>
+                        2. Develop seasonal promotions calendar based on peak hours<br>
+                        3. Create dashboard for real-time sales monitoring<br>
+                        4. Conduct customer survey to understand mushroom pizza underperformance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="navigation">
+            <button class="nav-btn" id="prevBtn"><i class="fas fa-arrow-left"></i></button>
+            <button class="nav-btn" id="nextBtn"><i class="fas fa-arrow-right"></i></button>
+        </div>
+        
+        <div class="footer">
+            Prepared by Aruhi Pallavi <span class="pizza-slice">🍕</span> June 2025 
+            <span class="pizza-slice">🍕</span> aruhipallavi@example.com
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slidesContainer = document.getElementById('slidesContainer');
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            let currentSlide = 0;
+            
+            // Initialize slider
+            function updateSlidePosition() {
+                slidesContainer.scrollTo({
+                    left: slides[currentSlide].offsetLeft - slidesContainer.offsetLeft,
+                    behavior: 'smooth'
+                });
+                updateActiveSlide();
+            }
+            
+            function updateActiveSlide() {
+                slides.forEach((slide, index) => {
+                    if (index === currentSlide) {
+                        slide.classList.add('active');
+                    } else {
+                        slide.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Navigation
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < slides.length - 1) {
+                    currentSlide++;
+                    updateSlidePosition();
+                }
+            });
+            
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlidePosition();
+                }
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    if (currentSlide < slides.length - 1) {
+                        currentSlide++;
+                        updateSlidePosition();
+                    }
+                } else if (e.key === 'ArrowLeft') {
+                    if (currentSlide > 0) {
+                        currentSlide--;
+                        updateSlidePosition();
+                    }
+                }
+            });
+            
+            // Touch/swipe for mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            slidesContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            slidesContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swipe left
+                    if (currentSlide < slides.length - 1) {
+                        currentSlide++;
+                        updateSlidePosition();
+                    }
+                }
+                
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swipe right
+                    if (currentSlide > 0) {
+                        currentSlide--;
+                        updateSlidePosition();
+                    }
+                }
+            }
+            
+            // Initialize
+            updateActiveSlide();
+        });
+    </script>
+</body>
+</html>
